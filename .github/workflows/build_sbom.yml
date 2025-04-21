@@ -1,0 +1,46 @@
+# This workflow builds the Docker image and generates an SBOM using Syft.
+name: Build and Generate SBOM
+
+# Trigger the workflow on push events to the main branch
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-sbom:
+    # Use the latest Ubuntu runner provided by GitHub Actions.
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      # Action to check out your repository code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      # Action to set up Buildx, a Docker component for building images
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker Image
+      # Use the docker build command to build the image
+      # We tag the image with the repository name and commit SHA for uniqueness
+      run: |
+        docker build -t ghcr.io/${{ github.repository }}:latest .
+        docker tag ghcr.io/${{ github.repository }}:latest ghcr.io/${{ github.repository }}:${{ github.sha }}
+
+    - name: Generate SBOM with Syft
+      # Run Syft as a Docker container to analyze our image
+      # We output the SBOM in CycloneDX JSON format
+      # The SBOM file is saved as sbom.json
+      run: |
+        docker run --rm \
+          anchore/syft:latest \
+          ghcr.io/${{ github.repository }}:${{ github.sha }} \
+          -o cyclonedx-json=sbom.json
+
+    - name: Upload SBOM artifact
+      # Upload the generated sbom.json file as a workflow artifact
+      # This makes the SBOM available for download from the GitHub Actions run page
+      uses: actions/upload-artifact@v4
+      with:
+        name: sbom
+        path: sbom.json
