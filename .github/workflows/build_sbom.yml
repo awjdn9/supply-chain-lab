@@ -49,8 +49,7 @@ jobs:
         cosign-release: 'v2.2.3' # Specify a Cosign version
 
     - name: Sign the Container Image with Cosign
-      # Use Cosign to sign the image we just pushed
-      # We use keyless signing (no need to manage keys manually)
+      # Use keyless signing (no need to manage keys manually)
       # The COSIGN_EXPERIMENTAL environment variable is needed for keyless signing in some versions
       env:
         COSIGN_EXPERIMENTAL: "true"
@@ -65,16 +64,20 @@ jobs:
     - name: Generate SBOM with Syft
       # Run Syft as a Docker container to analyze our image
       # Mount the Docker socket to allow Syft access to the daemon
-      # Analyze the image and print SBOM to standard output (simplified for debugging)
+      # Mount the workspace to save the SBOM file to the runner's filesystem
+      # Analyze the image and output SBOM to a file in the mounted workspace
       run: |
         docker run --rm \
           -v /var/run/docker.sock:/var/run/docker.sock \
+          -v ${{ github.workspace }}:/workspace \
           anchore/syft:latest \
-          ghcr.io/${{ github.repository }}@${{ steps.build-image.outputs.digest }} # Analyze the image and print to stdout
+          ghcr.io/${{ github.repository }}@${{ steps.build-image.outputs.digest }} \
+          -o cyclonedx-json=/workspace/sbom.json # Output to file in the mounted workspace
 
-    # Removed the Upload SBOM artifact step for this simplified test
-    # - name: Upload SBOM artifact
-    #   uses: actions/upload-artifact@v4
-    #   with:
-    #     name: sbom
-    #     path: sbom.json
+    - name: Upload SBOM artifact
+      # Upload the generated sbom.json file as a workflow artifact
+      # This makes the SBOM available for download from the GitHub Actions run page
+      uses: actions/upload-artifact@v4
+      with:
+        name: sbom
+        path: sbom.json # The file is now in the workspace on the runner
