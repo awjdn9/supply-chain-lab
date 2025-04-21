@@ -32,12 +32,14 @@ jobs:
       # We output the SBOM in CycloneDX JSON format
       # The SBOM file is saved as sbom.json
       # Mount the Docker socket to allow Syft (running in a container) to access the Docker daemon on the runner
+      # Mount the workspace to save the SBOM file to the runner's filesystem
       run: |
         docker run --rm \
           -v /var/run/docker.sock:/var/run/docker.sock \
+          -v ${{ github.workspace }}:/workspace \
           anchore/syft:latest \
           ghcr.io/${{ github.repository }}:${{ github.sha }} \
-          -o cyclonedx-json=sbom.json
+          -o cyclonedx-json=/workspace/sbom.json
 
     - name: Upload SBOM artifact
       # Upload the generated sbom.json file as a workflow artifact
