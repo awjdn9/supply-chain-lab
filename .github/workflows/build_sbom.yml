@@ -64,22 +64,17 @@ jobs:
 
     - name: Generate SBOM with Syft
       # Run Syft as a Docker container to analyze our image
-      # We output the SBOM in CycloneDX JSON format
-      # The SBOM file is saved as sbom.json
-      # Mount the Docker socket to allow Syft (running in a container) to access the Docker daemon on the runner
-      # Mount the workspace to save the SBOM file to the runner's filesystem
-      # Explicitly run via sh -c with quoted arguments to ensure correct parsing
+      # Mount the Docker socket to allow Syft access to the daemon
+      # Analyze the image and print SBOM to standard output (simplified for debugging)
       run: |
         docker run --rm \
           -v /var/run/docker.sock:/var/run/docker.sock \
-          -v ${{ github.workspace }}:/workspace \
           anchore/syft:latest \
-          /bin/sh -c "syft \"ghcr.io/${{ github.repository }}@${{ steps.build-image.outputs.digest }}\" \"-o cyclonedx-json=/workspace/sbom.json\"" # Run command via sh -c with quoted args
+          ghcr.io/${{ github.repository }}@${{ steps.build-image.outputs.digest }} # Analyze the image and print to stdout
 
-    - name: Upload SBOM artifact
-      # Upload the generated sbom.json file as a workflow artifact
-      # This makes the SBOM available for download from the GitHub Actions run page
-      uses: actions/upload-artifact@v4
-      with:
-        name: sbom
-        path: sbom.json
+    # Removed the Upload SBOM artifact step for this simplified test
+    # - name: Upload SBOM artifact
+    #   uses: actions/upload-artifact@v4
+    #   with:
+    #     name: sbom
+    #     path: sbom.json
