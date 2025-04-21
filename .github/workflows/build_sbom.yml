@@ -60,6 +60,11 @@ jobs:
       run: |
         cosign sign ghcr.io/${{ github.repository }}@${{ steps.build-image.outputs.digest }}  
 
+    - name: Pull Docker Image for Analysis
+      # Explicitly pull the image using the authenticated Docker daemon on the runner
+      # This ensures the image is available locally for Syft to analyze
+      run: docker pull ghcr.io/${{ github.repository }}@${{ steps.build-image.outputs.digest }}
+
     - name: Generate SBOM with Syft
       # Run Syft as a Docker container to analyze our image
       # We output the SBOM in CycloneDX JSON format
@@ -71,7 +76,7 @@ jobs:
           -v /var/run/docker.sock:/var/run/docker.sock \
           -v ${{ github.workspace }}:/workspace \
           anchore/syft:latest \
-          ghcr.io/${{ github.repository }}:${{ github.sha }} \
+          ghcr.io/${{ github.repository }}@${{ steps.build-image.outputs.digest }} \ # Analyze the image now available locally
           -o cyclonedx-json=/workspace/sbom.json
 
     - name: Upload SBOM artifact
