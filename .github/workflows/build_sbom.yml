@@ -31,8 +31,10 @@ jobs:
       # Run Syft as a Docker container to analyze our image
       # We output the SBOM in CycloneDX JSON format
       # The SBOM file is saved as sbom.json
+      # Mount the Docker socket to allow Syft (running in a container) to access the Docker daemon on the runner
       run: |
         docker run --rm \
+          -v /var/run/docker.sock:/var/run/docker.sock \
           anchore/syft:latest \
           ghcr.io/${{ github.repository }}:${{ github.sha }} \
           -o cyclonedx-json=sbom.json
