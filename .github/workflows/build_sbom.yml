@@ -8,8 +8,7 @@ on:
       - main
 
 jobs:
-  build-sbom-sign:
-    # Use the latest Ubuntu runner provided by GitHub Actions.
+  build-sbom-sign: # Renamed the job for clarity
     runs-on: ubuntu-latest
 
     permissions:
@@ -19,11 +18,9 @@ jobs:
 
     steps:
     - name: Checkout code
-      # Action to check out your repository code
       uses: actions/checkout@v4
 
     - name: Set up Docker Buildx
-      # Action to set up Buildx, a Docker component for building images
       uses: docker/setup-buildx-action@v3
 
     - name: Log in to GitHub Container Registry
@@ -44,13 +41,13 @@ jobs:
         tags: |
           ghcr.io/${{ github.repository }}:latest
           ghcr.io/${{ github.repository }}:${{ github.sha }}
-  
+
     - name: Install Cosign
       # Install the Cosign tool
       uses: sigstore/cosign-installer@v3.5.0
       with:
         cosign-release: 'v2.2.3' # Specify a Cosign version
-  
+
     - name: Sign the Container Image with Cosign
       # Use Cosign to sign the image we just pushed
       # We use keyless signing (no need to manage keys manually)
@@ -58,7 +55,7 @@ jobs:
       env:
         COSIGN_EXPERIMENTAL: "true"
       run: |
-        cosign sign ghcr.io/${{ github.repository }}@${{ steps.build-image.outputs.digest }}  
+        cosign sign ghcr.io/${{ github.repository }}@${{ steps.build-image.outputs.digest }}
 
     - name: Pull Docker Image for Analysis
       # Explicitly pull the image using the authenticated Docker daemon on the runner
@@ -71,13 +68,13 @@ jobs:
       # The SBOM file is saved as sbom.json
       # Mount the Docker socket to allow Syft (running in a container) to access the Docker daemon on the runner
       # Mount the workspace to save the SBOM file to the runner's filesystem
+      # Explicitly run via sh -c to ensure correct argument parsing
       run: |
         docker run --rm \
           -v /var/run/docker.sock:/var/run/docker.sock \
           -v ${{ github.workspace }}:/workspace \
           anchore/syft:latest \
-          ghcr.io/${{ github.repository }}@${{ steps.build-image.outputs.digest }} \ # Analyze the image now available locally
-          -o cyclonedx-json=/workspace/sbom.json
+          /bin/sh -c "syft ghcr.io/${{ github.repository }}@${{ steps.build-image.outputs.digest }} -o cyclonedx-json=/workspace/sbom.json" # Run command via sh -c
 
     - name: Upload SBOM artifact
       # Upload the generated sbom.json file as a workflow artifact
