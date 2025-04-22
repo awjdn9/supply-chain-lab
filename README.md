@@ -58,3 +58,5 @@ You have successfully set up a lab environment to:
 This project provides a practical understanding of key software supply chain security concepts and how they can be integrated into an automated workflow. You can now explore adding vulnerability scanning, enforcing policies based on SBOMs, and learning more about different signing methods and SBOM formats.
 
 Let me know if you'd like to expand on any of these steps or add more features to your lab!
+
+Upload Sarif placeholder
