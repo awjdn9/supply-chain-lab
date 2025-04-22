@@ -6,7 +6,7 @@ name: Upload SARIF to Code Scanning
 # We specify the 'Build, SBOM, Sign, and Scan' workflow by name.
 on:
   workflow_run:
-    workflows: ["Build, SBOM, Sign, and Scan"] # Replace with the exact name of your main workflow if different
+    workflows: ["Build, SBOM, Sign, and Scan"]
     types:
       - completed
 
@@ -24,12 +24,12 @@ jobs:
         # Checkout the repository to access artifacts if needed (not strictly necessary for just uploading)
         uses: actions/checkout@v4
 
-      # This step is a placeholder. The actual SARIF upload happens in your main workflow.
+      # This step is a placeholder. The actual SARIF upload happens in our main workflow.
       # The presence of this action definition in a workflow file is what enables
       # Code Scanning to receive SARIF uploads for this repository.
       - name: Placeholder Upload Step
         run: echo "This workflow is configured to accept SARIF uploads."
-        # In a real scenario processing artifacts, you might download the artifact here
+        # In a real scenario processing artifacts, we might download the artifact here
         # - uses: actions/download-artifact@v4
         #   with:
         #     name: vulnerability-report # Name of the artifact from the other workflow

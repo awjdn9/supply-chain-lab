@@ -12,9 +12,8 @@ jobs:
   build-sbom-sign-scan: # Renamed the job for clarity
     runs-on: ubuntu-latest
 
-    # Explicitly define permissions for this job - Granting all for debugging purposes
-    # WARNING: Granting all permissions is NOT a security best practice for production workflows.
-    # This is done here to help diagnose permission issues in a lab environment.
+    # NOTE: Granting all permissions is NOT a security best practice.
+    # This is done here to help diagnose permission issues in our lab environment.
     permissions:
       contents: write # Grant write access to contents
       packages: write # Grant write access to packages
@@ -32,7 +31,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      # Action to check out your repository code
+      # Action to check out our repository code
       uses: actions/checkout@v4
 
     - name: Set up Docker Buildx
@@ -49,7 +48,7 @@ jobs:
 
     - name: Build and Push Docker Image
       # Build and immediately push the tagged image to GitHub Container Registry
-      id: build-image # Give this step an ID to reference its outputs
+      id: build-image # We give this step an ID to reference its outputs
       uses: docker/build-push-action@v5
       with:
         context: .
@@ -62,15 +61,15 @@ jobs:
       # Install the Cosign tool
       uses: sigstore/cosign-installer@v3.5.0
       with:
-        cosign-release: 'v2.2.3' # Specify a Cosign version
+        cosign-release: 'v2.2.3' # Specify a Cosign version for reproducibility
 
     - name: Sign the Container Image with Cosign
-      # Use keyless signing (no need to manage keys manually)
-      # The COSIGN_EXPERIMENTAL environment variable is needed for keyless signing in some versions
+      # Use keyless signing to simplify our lab
+      # The COSIGN_EXPERIMENTAL environment variable is sometimes needed for keyless
       env:
         COSIGN_EXPERIMENTAL: "true"
       run: |
-        cosign sign --yes ghcr.io/${{ github.repository }}@${{ steps.build-image.outputs.digest }} # Added --yes flag
+        cosign sign --yes ghcr.io/${{ github.repository }}@${{ steps.build-image.outputs.digest }}
 
     - name: Pull Docker Image for Analysis
       # Explicitly pull the image using the authenticated Docker daemon on the runner
@@ -88,7 +87,7 @@ jobs:
           -v ${{ github.workspace }}:/workspace \
           anchore/syft:latest \
           ghcr.io/${{ github.repository }}@${{ steps.build-image.outputs.digest }} \
-          -o cyclonedx-json=/workspace/sbom.json # Output to file in the mounted workspace
+          -o cyclonedx-json=/workspace/sbom.json
 
     - name: Run Vulnerability Scan with Grype
       # Run Grype as a Docker container to scan the SBOM file
@@ -99,7 +98,7 @@ jobs:
           -v ${{ github.workspace }}:/workspace \
           anchore/grype:latest \
           sbom:/workspace/sbom.json \
-          -o sarif=/workspace/vulnerability-report.sarif # Scan the SBOM file and output SARIF report
+          -o sarif=/workspace/vulnerability-report.sarif
 
     - name: Upload SARIF report
       # Upload the SARIF vulnerability report to GitHub Advanced Security
@@ -110,8 +109,9 @@ jobs:
 
     - name: Upload Vulnerability Report artifact (Optional - for raw report)
       # Upload the raw vulnerability report file as a workflow artifact
-      # This allows you to download and review the report directly
+      # This allows us to download and review the report directly
       uses: actions/upload-artifact@v4
       with:
         name: vulnerability-report
-        path: vulnerability-report.sarif # Or .json if you change the output format above
+        path: vulnerability-report.sarif # We can also change output format to .json
+        
