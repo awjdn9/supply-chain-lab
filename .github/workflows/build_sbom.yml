@@ -12,12 +12,23 @@ jobs:
   build-sbom-sign-scan: # Renamed the job for clarity
     runs-on: ubuntu-latest
 
+    # Explicitly define permissions for this job - Granting all for debugging purposes
+    # WARNING: Granting all permissions is NOT a security best practice for production workflows.
+    # This is done here to help diagnose permission issues in a lab environment.
     permissions:
-      contents: read # Allow reading repository contents
-      packages: write # Allow writing to GitHub Packages (for image push)
+      contents: write # Grant write access to contents
+      packages: write # Grant write access to packages
       id-token: write # Allow OpenID Connect (OIDC) token issuance for Sigstore
-      # Add permission to write security events for SARIF report upload
-      security-events: write
+      security-events: write # Grant write access to security events
+      actions: write # Grant write access to actions
+      checks: write # Grant write access to checks
+      deployments: write # Grant write access to deployments
+      discussions: write # Grant write access to discussions
+      issues: write # Grant write access to issues
+      pages: write # Grant write access to pages
+      pull-requests: write # Grant write access to pull requests
+      repository-projects: write # Grant write access to repository projects
+      statuses: write # Grant write access to statuses
 
     steps:
     - name: Checkout code
