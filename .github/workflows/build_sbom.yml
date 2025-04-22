@@ -1,5 +1,6 @@
 # This workflow builds the Docker image, generates an SBOM, and signs the image.
-name: Build, SBOM, and Sign
+# It now also includes a vulnerability scanning step using Grype.
+name: Build, SBOM, Sign, and Scan
 
 # Trigger the workflow on push events to the main branch
 on:
@@ -8,19 +9,23 @@ on:
       - main
 
 jobs:
-  build-sbom-sign: # Renamed the job for clarity
+  build-sbom-sign-scan: # Renamed the job for clarity
     runs-on: ubuntu-latest
 
     permissions:
       contents: read # Allow reading repository contents
       packages: write # Allow writing to GitHub Packages (for image push)
       id-token: write # Allow OpenID Connect (OIDC) token issuance for Sigstore
+      # Add permission to write security events for SARIF report upload
+      security-events: write
 
     steps:
     - name: Checkout code
+      # Action to check out your repository code
       uses: actions/checkout@v4
 
     - name: Set up Docker Buildx
+      # Action to set up Buildx, a Docker component for building images
       uses: docker/setup-buildx-action@v3
 
     - name: Log in to GitHub Container Registry
@@ -74,10 +79,28 @@ jobs:
           ghcr.io/${{ github.repository }}@${{ steps.build-image.outputs.digest }} \
           -o cyclonedx-json=/workspace/sbom.json # Output to file in the mounted workspace
 
-    - name: Upload SBOM artifact
-      # Upload the generated sbom.json file as a workflow artifact
-      # This makes the SBOM available for download from the GitHub Actions run page
+    - name: Run Vulnerability Scan with Grype
+      # Run Grype as a Docker container to scan the SBOM file
+      # Mount the workspace to access the sbom.json file and save the report
+      # Output the report in SARIF format for GitHub Advanced Security integration
+      run: |
+        docker run --rm \
+          -v ${{ github.workspace }}:/workspace \
+          anchore/grype:latest \
+          sbom:/workspace/sbom.json \
+          -o sarif=/workspace/vulnerability-report.sarif # Scan the SBOM file and output SARIF report
+
+    - name: Upload SARIF report
+      # Upload the SARIF vulnerability report to GitHub Advanced Security
+      # This requires the 'security-events: write' permission
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: vulnerability-report.sarif
+
+    - name: Upload Vulnerability Report artifact (Optional - for raw report)
+      # Upload the raw vulnerability report file as a workflow artifact
+      # This allows you to download and review the report directly
       uses: actions/upload-artifact@v4
       with:
-        name: sbom
-        path: sbom.json
+        name: vulnerability-report
+        path: vulnerability-report.sarif # Or .json if you change the output format above
