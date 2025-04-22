@@ -54,7 +54,7 @@ jobs:
       env:
         COSIGN_EXPERIMENTAL: "true"
       run: |
-        cosign sign ghcr.io/${{ github.repository }}@${{ steps.build-image.outputs.digest }}
+        cosign sign --yes ghcr.io/${{ github.repository }}@${{ steps.build-image.outputs.digest }} # Added --yes flag
 
     - name: Pull Docker Image for Analysis
       # Explicitly pull the image using the authenticated Docker daemon on the runner
@@ -80,4 +80,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: sbom
-        path: sbom.json # The file is now in the workspace on the runner
+        path: sbom.json
